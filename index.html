@@ -171,7 +171,7 @@
             </div>
             <div class="flex items-center gap-2">
                 <span class="font-display text-sm font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-brand-accent bg-clip-text text-transparent">MyTicket</span>
-                <span class="text-[8px] bg-slate-800 text-slate-400 font-mono px-1 py-0.5 rounded border border-slate-700">v5.1</span>
+                <span class="text-[8px] bg-slate-800 text-slate-400 font-mono px-1 py-0.5 rounded border border-slate-700">v5.2</span>
                 <span id="header-user-badge" class="text-[8px] bg-slate-800 text-slate-350 font-extrabold px-1.5 py-0.5 rounded border border-slate-700 uppercase">Visiteur</span>
                 <button id="header-reset-btn" onclick="forceResetAllLocalData()" class="text-[8px] bg-red-950/60 hover:bg-red-900 text-red-400 hover:text-white font-semibold px-1.5 py-0.5 rounded border border-red-900/60 transition" title="Réinitialiser toutes les données locales">Réinitialiser</button>
             </div>
@@ -2441,7 +2441,7 @@ ALTER TABLE public.myticket_requests DISABLE ROW LEVEL SECURITY;</textarea>
                     localStorage.removeItem('myticket_proofs');
                     localStorage.removeItem('myticket_users_list_v2');
                     localStorage.removeItem('myticket_user_v4');
-                    localStorage.setItem('myticket_production_reset_v6', 'true');
+                    localStorage.setItem('myticket_production_reset_v10', 'true');
                     console.log("Legacy mock transactions detected in local storage. Cache cleared.");
                     window.location.reload();
                     return;
@@ -2452,14 +2452,14 @@ ALTER TABLE public.myticket_requests DISABLE ROW LEVEL SECURITY;</textarea>
         }
 
         // Force clean legacy mock cache for existing browsers on first load of this version
-        if (!localStorage.getItem('myticket_production_reset_v6')) {
+        if (!localStorage.getItem('myticket_production_reset_v10')) {
             localStorage.removeItem('myticket_participants_v4');
             localStorage.removeItem('myticket_proofs');
             localStorage.removeItem('myticket_users_list_v2');
             localStorage.removeItem('myticket_finance_v2');
             localStorage.removeItem('myticket_user_v4');
             localStorage.removeItem('myticket_programme_v1');
-            localStorage.setItem('myticket_production_reset_v6', 'true');
+            localStorage.setItem('myticket_production_reset_v10', 'true');
             console.log("Legacy mock cache cleared successfully!");
         }
 
@@ -8081,8 +8081,8 @@ STATUT : ACCÈS CONFIRMÉ ENREGISTRÉ
     // Load credentials from localStorage if present
     function getDbCredentials() {
         return {
-            url: localStorage.getItem('myticket_supabase_url') || '',
-            key: localStorage.getItem('myticket_supabase_key') || ''
+            url: localStorage.getItem('myticket_supabase_url') || 'https://gnrenldzzviqoozfpqap.supabase.co',
+            key: localStorage.getItem('myticket_supabase_key') || 'sb_publishable_6T5qMESgUV17E1j9jnF5pQ_C24usztB'
         };
     }
 
