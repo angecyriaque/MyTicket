@@ -171,7 +171,7 @@
             </div>
             <div class="flex items-center gap-2">
                 <span class="font-display text-sm font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-brand-accent bg-clip-text text-transparent">MyTicket</span>
-                <span class="text-[8px] bg-slate-800 text-slate-400 font-mono px-1 py-0.5 rounded border border-slate-700">v5.2</span>
+                <span class="text-[8px] bg-slate-800 text-slate-400 font-mono px-1 py-0.5 rounded border border-slate-700">v5.3</span>
                 <span id="header-user-badge" class="text-[8px] bg-slate-800 text-slate-350 font-extrabold px-1.5 py-0.5 rounded border border-slate-700 uppercase">Visiteur</span>
                 <button id="header-reset-btn" onclick="forceResetAllLocalData()" class="text-[8px] bg-red-950/60 hover:bg-red-900 text-red-400 hover:text-white font-semibold px-1.5 py-0.5 rounded border border-red-900/60 transition" title="Réinitialiser toutes les données locales">Réinitialiser</button>
             </div>
@@ -2562,18 +2562,17 @@ ALTER TABLE public.myticket_requests DISABLE ROW LEVEL SECURITY;</textarea>
                     localStorage.setItem('myticket_user_v4', JSON.stringify(state.user));
                 }
             } else {
-                // Default to visitor simple!
-                const visitor = state.users.find(u => u.isAdmin === 'NON');
-                if (visitor) {
-                    state.user = { ...visitor };
-                    localStorage.setItem('myticket_user_v4', JSON.stringify(state.user));
-                }
+                const visitor = (state.users && state.users.find(u => u.isAdmin === 'NON')) || (state.users && state.users[0]) || MOCK_USERS[0];
+                state.user = { ...visitor };
+                localStorage.setItem('myticket_user_v4', JSON.stringify(state.user));
             }
         } catch (e) {
             console.warn("Storage profile reading blocked or inaccessible.", e);
-            if (state.users && state.users.length > 0) {
-                state.user = { ...state.users.find(u => u.isAdmin === 'NON') };
-            }
+            const visitor = (state.users && state.users.find(u => u.isAdmin === 'NON')) || (state.users && state.users[0]) || MOCK_USERS[0];
+            state.user = { ...visitor };
+        }
+        if (!state.user) {
+            state.user = { ...MOCK_USERS[0] };
         }
         applyUserStatesUI();
     }
@@ -3386,6 +3385,9 @@ ALTER TABLE public.myticket_requests DISABLE ROW LEVEL SECURITY;</textarea>
             const stored = localStorage.getItem('myticket_users_list_v2');
             if (stored) {
                 state.users = JSON.parse(stored);
+                if (!Array.isArray(state.users) || state.users.length === 0) {
+                    state.users = [...MOCK_USERS];
+                }
                 let mutated = false;
                 state.users.forEach(usr => {
                     if (!usr.password) {
@@ -8081,8 +8083,8 @@ STATUT : ACCÈS CONFIRMÉ ENREGISTRÉ
     // Load credentials from localStorage if present
     function getDbCredentials() {
         return {
-            url: localStorage.getItem('myticket_supabase_url') || 'https://gnrenldzzviqoozfpqap.supabase.co',
-            key: localStorage.getItem('myticket_supabase_key') || 'sb_publishable_6T5qMESgUV17E1j9jnF5pQ_C24usztB'
+            url: localStorage.getItem('myticket_supabase_url') || '',
+            key: localStorage.getItem('myticket_supabase_key') || ''
         };
     }
 
@@ -8218,11 +8220,11 @@ STATUT : ACCÈS CONFIRMÉ ENREGISTRÉ
 
     // Generic cloud syncing (upserts local array and deletes cloud rows not present locally)
     async function syncTableToCloud(tableName, localArray) {
-        if (!isDbConnected()) return;
+        if (!isDbConnected() || !navigator.onLine) return;
         try {
             // Get existing IDs in cloud
             const { data: cloudRows, error: fetchErr } = await supabase.from(tableName).select('id');
-            if (fetchErr) throw fetchErr;
+            if (fetchErr) return;
             
             const localIds = new Set(localArray.map(item => item.id));
             const toDelete = (cloudRows || [])
@@ -8231,17 +8233,15 @@ STATUT : ACCÈS CONFIRMÉ ENREGISTRÉ
                  
             // Delete removed items
             if (toDelete.length > 0) {
-                const { error: delErr } = await supabase.from(tableName).delete().in('id', toDelete);
-                if (delErr) throw delErr;
+                await supabase.from(tableName).delete().in('id', toDelete);
             }
             
             // Upsert local items
             if (localArray.length > 0) {
-                const { error: upsertErr } = await supabase.from(tableName).upsert(localArray);
-                if (upsertErr) throw upsertErr;
+                await supabase.from(tableName).upsert(localArray);
             }
         } catch (err) {
-            console.error(`Error syncing table ${tableName} to cloud:`, err);
+            console.warn(`Error syncing table ${tableName} to cloud:`, err);
         }
     }
 
@@ -8325,31 +8325,23 @@ STATUT : ACCÈS CONFIRMÉ ENREGISTRÉ
     }
 
     async function syncFromCloudInBackground() {
+        if (!isDbConnected() || !navigator.onLine) return;
         try {
-            const { data: participants, error: pErr } = await supabase.from('myticket_participants').select('*');
-            if (pErr) throw pErr;
+            const { data: participants } = await supabase.from('myticket_participants').select('*');
+            const { data: users } = await supabase.from('myticket_users').select('*');
+            const { data: programme } = await supabase.from('myticket_programme').select('*');
+            const { data: incomes } = await supabase.from('myticket_incomes').select('*');
+            const { data: requests } = await supabase.from('myticket_requests').select('*');
             
-            const { data: users, error: uErr } = await supabase.from('myticket_users').select('*');
-            if (uErr) throw uErr;
-            
-            const { data: programme, error: prErr } = await supabase.from('myticket_programme').select('*');
-            if (prErr) throw prErr;
-            
-            const { data: incomes, error: incErr } = await supabase.from('myticket_incomes').select('*');
-            if (incErr) throw incErr;
-            
-            const { data: requests, error: reqErr } = await supabase.from('myticket_requests').select('*');
-            if (reqErr) throw reqErr;
-            
-            if (participants) {
+            if (participants && Array.isArray(participants) && participants.length > 0) {
                 state.participants = participants;
                 originalSetItem.call(localStorage, 'myticket_participants_v4', JSON.stringify(state.participants));
             }
-            if (users) {
+            if (users && Array.isArray(users) && users.length > 0) {
                 state.users = users;
                 originalSetItem.call(localStorage, 'myticket_users_list_v2', JSON.stringify(state.users));
             }
-            if (programme) {
+            if (programme && Array.isArray(programme) && programme.length > 0) {
                 state.programme = programme.sort((a,b) => (a.order || 0) - (b.order || 0));
                 originalSetItem.call(localStorage, 'myticket_programme_v1', JSON.stringify(state.programme));
             }
