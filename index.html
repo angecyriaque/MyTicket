@@ -171,7 +171,7 @@
             </div>
             <div class="flex items-center gap-2">
                 <span class="font-display text-sm font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-brand-accent bg-clip-text text-transparent">MyTicket</span>
-                <span class="text-[8px] bg-slate-800 text-slate-400 font-mono px-1 py-0.5 rounded border border-slate-700">v5.3</span>
+                <span class="text-[8px] bg-slate-800 text-slate-400 font-mono px-1 py-0.5 rounded border border-slate-700">v5.4</span>
                 <span id="header-user-badge" class="text-[8px] bg-slate-800 text-slate-350 font-extrabold px-1.5 py-0.5 rounded border border-slate-700 uppercase">Visiteur</span>
                 <button id="header-reset-btn" onclick="forceResetAllLocalData()" class="text-[8px] bg-red-950/60 hover:bg-red-900 text-red-400 hover:text-white font-semibold px-1.5 py-0.5 rounded border border-red-900/60 transition" title="Réinitialiser toutes les données locales">Réinitialiser</button>
             </div>
@@ -2411,6 +2411,16 @@ ALTER TABLE public.myticket_requests DISABLE ROW LEVEL SECURITY;</textarea>
     // Database of mock user accounts representing admins and visitors
     const MOCK_USERS = [
         {
+            id: "usr-1",
+            nom: "Organisateur",
+            prenom: "Administrateur",
+            comite: "Direction Générale",
+            responsabilite: "Super Administrateur",
+            isAdmin: "OUI",
+            password: "123",
+            avatar: ""
+        },
+        {
             id: "usr-2",
             nom: "Visiteur",
             prenom: "Invité",
@@ -2441,7 +2451,7 @@ ALTER TABLE public.myticket_requests DISABLE ROW LEVEL SECURITY;</textarea>
                     localStorage.removeItem('myticket_proofs');
                     localStorage.removeItem('myticket_users_list_v2');
                     localStorage.removeItem('myticket_user_v4');
-                    localStorage.setItem('myticket_production_reset_v10', 'true');
+                    localStorage.setItem('myticket_production_reset_v12', 'true');
                     console.log("Legacy mock transactions detected in local storage. Cache cleared.");
                     window.location.reload();
                     return;
@@ -2452,14 +2462,14 @@ ALTER TABLE public.myticket_requests DISABLE ROW LEVEL SECURITY;</textarea>
         }
 
         // Force clean legacy mock cache for existing browsers on first load of this version
-        if (!localStorage.getItem('myticket_production_reset_v10')) {
+        if (!localStorage.getItem('myticket_production_reset_v12')) {
             localStorage.removeItem('myticket_participants_v4');
             localStorage.removeItem('myticket_proofs');
             localStorage.removeItem('myticket_users_list_v2');
             localStorage.removeItem('myticket_finance_v2');
             localStorage.removeItem('myticket_user_v4');
             localStorage.removeItem('myticket_programme_v1');
-            localStorage.setItem('myticket_production_reset_v10', 'true');
+            localStorage.setItem('myticket_production_reset_v12', 'true');
             console.log("Legacy mock cache cleared successfully!");
         }
 
@@ -2562,14 +2572,14 @@ ALTER TABLE public.myticket_requests DISABLE ROW LEVEL SECURITY;</textarea>
                     localStorage.setItem('myticket_user_v4', JSON.stringify(state.user));
                 }
             } else {
-                const visitor = (state.users && state.users.find(u => u.isAdmin === 'NON')) || (state.users && state.users[0]) || MOCK_USERS[0];
-                state.user = { ...visitor };
+                const admin = (state.users && state.users.find(u => u.isAdmin === 'OUI')) || (state.users && state.users[0]) || MOCK_USERS[0];
+                state.user = { ...admin };
                 localStorage.setItem('myticket_user_v4', JSON.stringify(state.user));
             }
         } catch (e) {
             console.warn("Storage profile reading blocked or inaccessible.", e);
-            const visitor = (state.users && state.users.find(u => u.isAdmin === 'NON')) || (state.users && state.users[0]) || MOCK_USERS[0];
-            state.user = { ...visitor };
+            const admin = (state.users && state.users.find(u => u.isAdmin === 'OUI')) || (state.users && state.users[0]) || MOCK_USERS[0];
+            state.user = { ...admin };
         }
         if (!state.user) {
             state.user = { ...MOCK_USERS[0] };
